@@ -13,7 +13,7 @@ import (
 func compileShader(source string, kind uint32) (uint32, error) {
 	shader := gl.CreateShader(kind)
 
-	csources, free := gl.Strs(source)
+	csources, free := gl.Strs(source + "\x00")
 	gl.ShaderSource(shader, 1, csources, nil)
 	free()
 	gl.CompileShader(shader)

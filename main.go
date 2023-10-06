@@ -5,8 +5,10 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
-	// "github.com/elloramir/mine-clone/gfx"
+	"github.com/elloramir/mine-clone/gfx"
+	"github.com/elloramir/mine-clone/world"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"runtime"
@@ -14,6 +16,12 @@ import (
 
 const windowWidth = 800
 const windowHeight = 600
+
+//go:embed shaders/vert.glsl
+var vertShaderSource string
+
+//go:embed shaders/frag.glsl
+var fragShaderSource string
 
 func init() {
 	// GLFW event handling must run on the main OS thread
@@ -32,7 +40,7 @@ func main() {
 	glfw.WindowHint(glfw.ContextVersionMinor, 3)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-	window, err := glfw.CreateWindow(windowWidth, windowHeight, "cube", nil, nil)
+	window, err := glfw.CreateWindow(windowWidth, windowHeight, "MineClone - v1.0", nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -45,6 +53,15 @@ func main() {
 
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	fmt.Println("OpenGL version", version)
+
+	program, err := gfx.CompileProgram(vertShaderSource, fragShaderSource)
+	if err != nil {
+		panic(err)
+	}
+	defer gl.DeleteProgram(program)
+
+	// Create world
+	world.NewChunk(0, 0)
 
 	// Handle events
 	for !window.ShouldClose() {
