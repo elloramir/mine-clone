@@ -2,7 +2,7 @@
 // Use of this source code is governed by MIT
 // license that can be found in the LICENSE file.
 
-package game
+package world
 
 import (
 	"github.com/go-gl/gl/v3.3-core/gl"

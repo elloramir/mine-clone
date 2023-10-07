@@ -5,7 +5,7 @@
 package world
 
 import (
-	"github.com/elloramir/gamecube/gfx"
+	"github.com/elloramir/mine-clone/gfx"
 	simplex "github.com/ojrac/opensimplex-go"
 )
 

@@ -4,7 +4,7 @@
 
 package world
 
-import "github.com/elloramir/gamecube/gfx"
+import "github.com/elloramir/mine-clone/gfx"
 
 type BlockKind uint8
 

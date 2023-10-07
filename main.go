@@ -9,9 +9,8 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/elloramir/gamecube/game"
-	"github.com/elloramir/gamecube/gfx"
-	"github.com/elloramir/gamecube/world"
+	"github.com/elloramir/mine-clone/world"
+	"github.com/elloramir/mine-clone/gfx"
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
@@ -63,7 +62,7 @@ func main() {
 
 	// Playground
 	chunk := world.NewChunk(0, 0)
-	camera := game.NewCamera()
+	camera := world.NewCamera()
 
 	program, _ := gfx.LoadShader("shaders/voxel.vert", "shaders/voxel.frag")
 	dem_block, _ := gfx.LoadTexture("assets/demo_block.png")

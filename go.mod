@@ -1,4 +1,4 @@
-module github.com/elloramir/gamecube
+module github.com/elloramir/mine-clone
 
 go 1.20
 
