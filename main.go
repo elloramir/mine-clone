@@ -60,12 +60,18 @@ func main() {
 	}
 	defer gl.DeleteProgram(program)
 
-	// Create world
-	world.NewChunk(0, 0)
+	// Create world stuff.
+	chunk := world.NewChunk(0, 0)
+	camera := world.NewCamera()
 
-	// Handle events
+	// Handle events.
 	for !window.ShouldClose() {
+		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+		gl.UseProgram(program)
+		camera.Uniforms(program)
+		chunk.Mesh.Render()
 
 		// Next frame
 		window.SwapBuffers()

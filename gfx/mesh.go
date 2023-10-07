@@ -15,6 +15,8 @@ type Vertex struct {
 	normal mgl32.Vec3
 }
 
+const vertexStride = 4*(3+2+3)
+
 type Mesh struct {
 	model    mgl32.Mat4
 	vertices []Vertex
@@ -35,6 +37,15 @@ func NewMesh() *Mesh {
 	return m
 }
 
+func (m *Mesh) AddQuad(v1, v2, v3, v4 mgl32.Vec3) {
+	i := uint32(len(m.indices))
+	m.vertices = append(m.vertices, Vertex{pos:v1})
+	m.vertices = append(m.vertices, Vertex{pos:v2})
+	m.vertices = append(m.vertices, Vertex{pos:v3})
+	m.vertices = append(m.vertices, Vertex{pos:v4})
+	m.indices = append(m.indices, i+0, i+1, i+3, i+1, i+2, i+3)
+}
+
 func (m *Mesh) Upload() {
 	// @TODO: Warning about that?
 	if len(m.vertices) == 0 {
@@ -50,6 +61,11 @@ func (m *Mesh) Upload() {
 	// Load index buffer data.
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(m.indices)*4, gl.Ptr(m.indices), gl.STATIC_DRAW)
+
+	// Unbind handles.
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
+	gl.BindVertexArray(0)
 }
 
 func (m *Mesh) Unload() {
@@ -61,10 +77,41 @@ func (m *Mesh) Unload() {
 func (m *Mesh) Clear() {
 	// Clear the length/index but still the same capacity.
 	// m.verties = m.verties[:0]
+	// m.indices = m.indices[:0]
 
 	// Just clear the memory sounds better for now, but
 	// we need to add some priority factor to just clear
 	// or reset the index.
 	m.vertices = nil
 	m.indices = nil
+}
+
+func (m *Mesh) Render() {
+	// @TODO: Warning about that?
+	if len(m.vertices) == 0 {
+		return
+	}
+
+	gl.BindVertexArray(m.vao)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
+
+	// @TODO: Move to render pipeline?
+	// Position vector 3.
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointerWithOffset(0, 3, gl.FLOAT, false, vertexStride, 3*4)
+
+	// UV vector 2.
+	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, vertexStride, 2*4)
+
+	// Normals vector 3.
+	gl.EnableVertexAttribArray(2)
+	gl.VertexAttribPointerWithOffset(2, 3, gl.FLOAT, false, vertexStride, 3*4)
+
+	// Draw command
+	gl.DrawElements(gl.TRIANGLES, int32(len(m.indices)), gl.UNSIGNED_INT, nil);
+
+	// Unbind handles.
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
+	gl.BindVertexArray(0)
 }
