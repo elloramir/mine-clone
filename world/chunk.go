@@ -6,7 +6,7 @@ package world
 
 import (
 	"github.com/elloramir/mine-clone/gfx"
-	"github.com/go-gl/mathgl/mgl32"
+	//"github.com/go-gl/mathgl/mgl32"
 	simplex "github.com/ojrac/opensimplex-go"
 )
 
@@ -26,7 +26,7 @@ const ChunkVolume = (ChunkSize * ChunkSize * ChunkHeight)
 type Chunk struct {
 	X, Z   float32
 	Blocks [ChunkSize][ChunkHeight][ChunkSize]Block
-	Mesh   gfx.Mesh
+	Mesh   *gfx.Mesh
 }
 
 var noise32 simplex.Noise32 = simplex.New32(0x8739018fe1)
@@ -36,8 +36,9 @@ const noiseSmooth = 20
 
 func NewChunk(x, z float32) *Chunk {
 	c := &Chunk{
-		X: x,
-		Z: z}
+		Mesh: gfx.NewMesh(),
+		X:    x,
+		Z:    z}
 
 	c.generateTerrain()
 	c.generateMesh()
@@ -92,9 +93,9 @@ func (c *Chunk) generateMesh() {
 				}
 
 				// Usefull precast values.
-				x := float32(i)
-				y := float32(j)
-				z := float32(k)
+				// x := float32(i)
+				// y := float32(j)
+				// z := float32(k)
 
 				// Precomputed vertices.
 				// We may not use some of these vertices, but still
@@ -105,35 +106,38 @@ func (c *Chunk) generateMesh() {
 				// |  4     | 5
 				// |        |/
 				// 7 ------ 6
-				v0 := mgl32.Vec3{-0.5 + x, -0.5 + y, -0.5 + z}
-				v1 := mgl32.Vec3{+0.5 + x, -0.5 + y, -0.5 + z}
-				v2 := mgl32.Vec3{+0.5 + x, -0.5 + y, +0.5 + z}
-				v3 := mgl32.Vec3{-0.5 + x, -0.5 + y, +0.5 + z}
-				v4 := mgl32.Vec3{-0.5 + x, +0.5 + y, -0.5 + z}
-				v5 := mgl32.Vec3{+0.5 + x, +0.5 + y, -0.5 + z}
-				v6 := mgl32.Vec3{+0.5 + x, +0.5 + y, +0.5 + z}
-				v7 := mgl32.Vec3{-0.5 + x, +0.5 + y, +0.5 + z}
+				// v0 := mgl32.Vec3{-0.5 + x, -0.5 + y, -0.5 + z}
+				// v1 := mgl32.Vec3{+0.5 + x, -0.5 + y, -0.5 + z}
+				// v2 := mgl32.Vec3{+0.5 + x, -0.5 + y, +0.5 + z}
+				// v3 := mgl32.Vec3{-0.5 + x, -0.5 + y, +0.5 + z}
+				// v4 := mgl32.Vec3{-0.5 + x, +0.5 + y, -0.5 + z}
+				// v5 := mgl32.Vec3{+0.5 + x, +0.5 + y, -0.5 + z}
+				// v6 := mgl32.Vec3{+0.5 + x, +0.5 + y, +0.5 + z}
+				// v7 := mgl32.Vec3{-0.5 + x, +0.5 + y, +0.5 + z}
 
-				// Creating block faces
-				if c.GetBlock(i, j, k-1) == BlockAir {
-					c.Mesh.AddQuad(v1, v0, v4, v5)
-				}
-				if c.GetBlock(i, j, k+1) == BlockAir {
-					c.Mesh.AddQuad(v3, v2, v6, v7)
-				}
-				if c.GetBlock(i, j, k) == BlockAir {
-					c.Mesh.AddQuad(v0, v3, v7, v4)
-				}
-				if c.GetBlock(i, j, k) == BlockAir {
-					c.Mesh.AddQuad(v2, v1, v5, v6)
-				}
-				if c.GetBlock(i, j, k) == BlockAir {
-					c.Mesh.AddQuad(v0, v3, v2, v1)
-				}
-				if c.GetBlock(i, j, k) == BlockAir {
-					c.Mesh.AddQuad(v4, v5, v6, v7)
-				}
+				// // Creating block faces
+				// if c.GetBlock(i, j, k-1) == BlockAir {
+				// 	c.Mesh.AutoQuad(v1, v0, v4, v5)
+				// }
+				// if c.GetBlock(i, j, k+1) == BlockAir {
+				// 	c.Mesh.AutoQuad(v3, v2, v6, v7)
+				// }
+				// if c.GetBlock(i-1, j, k) == BlockAir {
+				// 	c.Mesh.AutoQuad(v0, v3, v7, v4)
+				// }
+				// if c.GetBlock(i+1, j, k) == BlockAir {
+				// 	c.Mesh.AutoQuad(v2, v1, v5, v6)
+				// }
+				// if c.GetBlock(i, j-1, k) == BlockAir {
+				// 	c.Mesh.AutoQuad(v0, v3, v2, v1)
+				// }
+				// if c.GetBlock(i, j+1, k) == BlockAir {
+				// 	c.Mesh.AutoQuad(v4, v5, v6, v7)
+				// }
 			}
 		}
 	}
+
+	c.Mesh.Upload()
+	c.Mesh.Clear()
 }
