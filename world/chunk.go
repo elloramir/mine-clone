@@ -1,45 +1,37 @@
-// Copyright 2023 Elloramir. All rights reserved.
+// Copyright (c) 2023 Ellora.
 // Use of this source code is governed by MIT
 // license that can be found in the LICENSE file.
 
 package world
 
 import (
-	"github.com/elloramir/mine-clone/gfx"
-	"github.com/go-gl/mathgl/mgl32"
+	"github.com/elloramir/gamecube/gfx"
 	simplex "github.com/ojrac/opensimplex-go"
 )
 
-// 256 block types looks enough.
-type Block uint8
-
 const (
-	BlockAir Block = iota
-	BlockDirty
-	BlockWater
+	SizeWidth  = 16
+	SizeHeight = 16
+	SizeLength = 16
 )
 
-const ChunkSize = 16
-const ChunkHeight = 16
-const ChunkVolume = (ChunkSize * ChunkSize * ChunkHeight)
+// Misc
+const (
+	NoiseSmooth = 20
+	WaterHeight = 3
+)
 
 type Chunk struct {
-	X, Z   float32
-	Blocks [ChunkSize][ChunkHeight][ChunkSize]Block
-	Mesh   *gfx.Mesh
+	X, Z    int32
+	Data    [SizeWidth][SizeHeight][SizeLength]BlockKind
+	Terrain gfx.Mesh
+	Water   gfx.Mesh
 }
 
-var noise32 simplex.Noise32 = simplex.New32(0x8739018fe1)
+var Noise32 = simplex.New32(0)
 
-// Smooth means how much detail on noise.
-const noiseSmooth = 20
-
-func NewChunk(x, z float32) *Chunk {
-	c := &Chunk{
-		Mesh: gfx.NewMesh(),
-		X:    x,
-		Z:    z}
-
+func NewChunk(x, z int32) *Chunk {
+	c := &Chunk{X: x, Z: z}
 	c.generateTerrain()
 	c.generateMesh()
 
@@ -47,97 +39,92 @@ func NewChunk(x, z float32) *Chunk {
 }
 
 func (c *Chunk) generateTerrain() {
-	// Absolute chunck position.
-	offsetX := int(c.X * ChunkSize)
-	offsetZ := int(c.Z * ChunkSize)
+	offsetX := int(c.X * SizeWidth)
+	offsetZ := int(c.Z * SizeLength)
 
-	// Generate world blocks from noise.
-	for x := 0; x < ChunkSize; x++ {
-		for z := 0; z < ChunkSize; z++ {
-			noiseX := float32(offsetX+x) / noiseSmooth
-			noiseY := float32(offsetZ+z) / noiseSmooth
+	for i := 0; i < SizeWidth; i++ {
+		for k := 0; k < SizeLength; k++ {
+			noiseX := float32(offsetX+i) / NoiseSmooth
+			noiseY := float32(offsetZ+k) / NoiseSmooth
 
-			// Normalize from [-1, 1] to [0, 1].
-			value := (noise32.Eval2(noiseX, noiseY) + 1) / 2
-			height := int32(value * ChunkHeight)
+			// Normalize from [-1, 1] to [0, 1]
+			value := (Noise32.Eval2(noiseX, noiseY) + 1) * 0.5
+			height := int32(value * SizeHeight)
 
-			// Grass Block.
+			// Grass
 			for height >= 0 {
-				c.Blocks[x][height][z] = BlockDirty
+				c.Data[i][height][k] = BlockGrass
 				height -= 1
+			}
+
+			// Water
+			if c.Data[i][WaterHeight][k] == BlockEmpty {
+				c.Data[i][WaterHeight][k] = BlockWater
 			}
 		}
 	}
 }
 
-func (c *Chunk) GetBlock(x, y, z int) Block {
-	if y < 0 || y >= ChunkHeight {
-		return BlockAir
+func (c *Chunk) GetBlock(x, y, z int32) BlockKind {
+	if y < 0 || y >= SizeLength {
+		return BlockVoid
 	}
 
-	// @TODO: Neighbor blocks
-	if x < 0 || x >= ChunkSize || z < 0 || z >= ChunkSize {
-		return BlockAir
+	// TODO: Neighbour check
+	if x < 0 || x >= SizeWidth || z < 0 || z >= SizeLength {
+		return BlockVoid
 	}
 
-	return c.Blocks[x][y][z]
+	return c.Data[x][y][z]
+}
+
+func (c *Chunk) isTransparent(i, j, k int32) bool {
+	hot := c.GetBlock(i, j, k)
+
+	return hot == BlockEmpty || hot == BlockWater
 }
 
 func (c *Chunk) generateMesh() {
-	for i := 0; i < ChunkSize; i++ {
-		for j := 0; j < ChunkHeight; j++ {
-			for k := 0; k < ChunkSize; k++ {
-				// Skip empty blocks.
-				if c.GetBlock(i, j, k) == BlockAir {
+	c.Terrain.Unload()
+	c.Water.Unload()
+
+	for k := int32(0); k < SizeLength; k++ {
+		for j := int32(0); j < SizeHeight; j++ {
+			for i := int32(0); i < SizeWidth; i++ {
+				currentBlock := c.GetBlock(i, j, k)
+
+				// Skip empty block
+				if currentBlock == BlockEmpty {
+					continue
+				} else if currentBlock == BlockWater {
+					// Water
+					generateQuad(&c.Water, SideBottom, i, j, k)
 					continue
 				}
 
-				// Usefull precast values.
-				x := float32(i)
-				y := float32(j)
-				z := float32(k)
-
-				// Precomputed vertices.
-				// We may not use some of these vertices, but still
-				// reasonable to have most of them already done.
-				//   0 ------ 1
-				//  /        /|
-				// 3 ------ 2 |
-				// |  4     | 5
-				// |        |/
-				// 7 ------ 6
-				v0 := mgl32.Vec3{-0.5 + x, -0.5 + y, -0.5 + z}
-				v1 := mgl32.Vec3{+0.5 + x, -0.5 + y, -0.5 + z}
-				v2 := mgl32.Vec3{+0.5 + x, -0.5 + y, +0.5 + z}
-				v3 := mgl32.Vec3{-0.5 + x, -0.5 + y, +0.5 + z}
-				v4 := mgl32.Vec3{-0.5 + x, +0.5 + y, -0.5 + z}
-				v5 := mgl32.Vec3{+0.5 + x, +0.5 + y, -0.5 + z}
-				v6 := mgl32.Vec3{+0.5 + x, +0.5 + y, +0.5 + z}
-				v7 := mgl32.Vec3{-0.5 + x, +0.5 + y, +0.5 + z}
-
-				// Creating block faces
-				if c.GetBlock(i, j, k-1) == BlockAir {
-					c.Mesh.AddQuad(v1, v0, v4, v5)
+				// All other blocks
+				if c.isTransparent(i, j, k-1) {
+					generateQuad(&c.Terrain, SideNorth, i, j, k)
 				}
-				if c.GetBlock(i, j, k+1) == BlockAir {
-					c.Mesh.AddQuad(v3, v2, v6, v7)
+				if c.isTransparent(i, j, k+1) {
+					generateQuad(&c.Terrain, SideSouth, i, j, k)
 				}
-				if c.GetBlock(i-1, j, k) == BlockAir {
-					c.Mesh.AddQuad(v0, v3, v7, v4)
+				if c.isTransparent(i+1, j, k) {
+					generateQuad(&c.Terrain, SideEast, i, j, k)
 				}
-				if c.GetBlock(i+1, j, k) == BlockAir {
-					c.Mesh.AddQuad(v2, v1, v5, v6)
+				if c.isTransparent(i-1, j, k) {
+					generateQuad(&c.Terrain, SideWest, i, j, k)
 				}
-				if c.GetBlock(i, j-1, k) == BlockAir {
-					c.Mesh.AddQuad(v0, v3, v2, v1)
+				if c.isTransparent(i, j+1, k) {
+					generateQuad(&c.Terrain, SideTop, i, j, k)
 				}
-				if c.GetBlock(i, j+1, k) == BlockAir {
-					c.Mesh.AddQuad(v4, v5, v6, v7)
+				if c.isTransparent(i, j-1, k) {
+					generateQuad(&c.Terrain, SideBottom, i, j, k)
 				}
 			}
 		}
 	}
 
-	c.Mesh.Upload()
-	c.Mesh.Clear()
+	c.Terrain.Upload()
+	c.Water.Upload()
 }

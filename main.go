@@ -1,79 +1,85 @@
-// Copyright 2023 Elloramir. All rights reserved.
+// Copyright (c) 2023 Ellora.
 // Use of this source code is governed by MIT
 // license that can be found in the LICENSE file.
 
 package main
 
 import (
-	_ "embed"
 	"fmt"
-	"github.com/elloramir/mine-clone/gfx"
-	"github.com/elloramir/mine-clone/world"
-	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/glfw/v3.3/glfw"
+	"log"
 	"runtime"
+
+	"github.com/elloramir/gamecube/game"
+	"github.com/elloramir/gamecube/gfx"
+	"github.com/elloramir/gamecube/world"
+	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
-const windowWidth = 800
-const windowHeight = 600
-
-//go:embed shaders/vert.glsl
-var vertShaderSource string
-
-//go:embed shaders/frag.glsl
-var fragShaderSource string
+const (
+	windowWidth  = 800
+	windowHeight = 600
+)
 
 func init() {
-	// GLFW event handling must run on the main OS thread
+	// This is needed to arrange that main() runs on main thread.
+	// See GLFW (go-gl) documentation for functions that are only allowed to
+	// be called from the main thread.
 	runtime.LockOSThread()
 }
 
 func main() {
 	if err := glfw.Init(); err != nil {
-		panic(err)
+		log.Fatalln("failed to initialize glfw:", err)
 	}
 	defer glfw.Terminate()
 
-	// Create window
-	glfw.WindowHint(glfw.Resizable, glfw.False)
+	glfw.WindowHint(glfw.Resizable, glfw.True)
 	glfw.WindowHint(glfw.ContextVersionMajor, 3)
 	glfw.WindowHint(glfw.ContextVersionMinor, 3)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-	window, err := glfw.CreateWindow(windowWidth, windowHeight, "MineClone - v1.0", nil, nil)
+	window, err := glfw.CreateWindow(windowWidth, windowHeight, "Cube", nil, nil)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	window.MakeContextCurrent()
 
 	// Initialize Glow
 	if err := gl.Init(); err != nil {
-		panic(err)
+		log.Fatalln("failed to initialize glow:", err)
 	}
 
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	fmt.Println("OpenGL version", version)
 
-	program, err := gfx.CompileProgram(vertShaderSource, fragShaderSource)
-	if err != nil {
-		panic(err)
-	}
-	defer gl.DeleteProgram(program)
+	// Configure GL settings
+	gl.Enable(gl.DEPTH_TEST)
+	gl.Enable(gl.BLEND)
+	gl.Enable(gl.CULL_FACE)
+	gl.CullFace(gl.BACK)
+	gl.DepthFunc(gl.LESS)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	gl.ClearColor(0.1, 0.2, 0.3, 1.0)
 
-	// Create world stuff.
+	// Playground
 	chunk := world.NewChunk(0, 0)
-	camera := world.NewCamera()
+	camera := game.NewCamera()
 
-	// Handle events.
+	program, _ := gfx.LoadShader("shaders/voxel.vert", "shaders/voxel.frag")
+	dem_block, _ := gfx.LoadTexture("assets/demo_block.png")
+
 	for !window.ShouldClose() {
-		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
+		// Render
+		gl.Viewport(0, 0, windowWidth, windowHeight)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+		camera.SendUniforms(program)
 		gl.UseProgram(program)
-		camera.Uniforms(program)
-		chunk.Mesh.Render()
+		gl.BindTexture(gl.TEXTURE_2D, dem_block)
+		chunk.Terrain.Render()
 
-		// Next frame
+		// Maintenance
+		camera.Update()
 		window.SwapBuffers()
 		glfw.PollEvents()
 	}
