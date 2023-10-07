@@ -9,9 +9,9 @@ import (
 )
 
 type Vertex struct {
-	position mgl32.Vec3
-	uv       mgl32.Vec2
-	normal   mgl32.Vec3
+	pos    mgl32.Vec3
+	uv     mgl32.Vec2
+	normal mgl32.Vec3
 }
 
 type Mesh struct {
@@ -21,13 +21,8 @@ type Mesh struct {
 	// @TODO: Material
 }
 
-// Consider all faces by looking top-down to the cube.
-// Each face will be located on the edge of the cube (cube pivot is 0.5, 0.5).
-const (
-	FaceEast   = iota // ->
-	FaceWest          // <-
-	FaceNorth         // /\
-	FaceSouth         // \/
-	FaceTop           // °
-	FaceBottom        // _
-)
+// It automatically sets the correct UV and normal based
+// only in vertex order.
+func (m *Mesh) AddQuad(v1, v2, v3, v4 mgl32.Vec3) {
+
+} 
