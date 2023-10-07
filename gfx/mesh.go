@@ -15,7 +15,7 @@ type Vertex struct {
 	normal mgl32.Vec3
 }
 
-const vertexStride = 4*(3+2+3)
+const vertexStride = 4 * (3 + 2 + 3)
 
 type Mesh struct {
 	model    mgl32.Mat4
@@ -39,10 +39,10 @@ func NewMesh() *Mesh {
 
 func (m *Mesh) AddQuad(v1, v2, v3, v4 mgl32.Vec3) {
 	i := uint32(len(m.indices))
-	m.vertices = append(m.vertices, Vertex{pos:v1})
-	m.vertices = append(m.vertices, Vertex{pos:v2})
-	m.vertices = append(m.vertices, Vertex{pos:v3})
-	m.vertices = append(m.vertices, Vertex{pos:v4})
+	m.vertices = append(m.vertices, Vertex{pos: v1})
+	m.vertices = append(m.vertices, Vertex{pos: v2})
+	m.vertices = append(m.vertices, Vertex{pos: v3})
+	m.vertices = append(m.vertices, Vertex{pos: v4})
 	m.indices = append(m.indices, i+0, i+1, i+3, i+1, i+2, i+3)
 }
 
@@ -109,7 +109,7 @@ func (m *Mesh) Render() {
 	gl.VertexAttribPointerWithOffset(2, 3, gl.FLOAT, false, vertexStride, 3*4)
 
 	// Draw command
-	gl.DrawElements(gl.TRIANGLES, int32(len(m.indices)), gl.UNSIGNED_INT, nil);
+	gl.DrawElements(gl.TRIANGLES, int32(len(m.indices)), gl.UNSIGNED_INT, nil)
 
 	// Unbind handles.
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
